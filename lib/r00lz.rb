@@ -1,4 +1,5 @@
 require "r00lz/version"
+require "erb"
 
 module R00lz
   class App
@@ -24,6 +25,20 @@ module R00lz
     def initialize(env)
       @env = env
     end
+
+    def render(name, b = binding())
+      template = "app/views/#{name}.html.erb"
+      e = ERB.new(File.read template)
+      e.result(b)
+    end
+
+    def request 
+      @request ||= Rack::Request.new @env
+    end
+
+    def params
+      request.params
+    end
   end
 
   class Object
@@ -32,12 +47,35 @@ module R00lz
       Object.const_get(c)
     end
   end
-
+  
   def self.to_underscore(s)
     s.gsub(
       /([A-Z]+)([A-Z][a-z])/,
       '\1_\2').gsub(
       /([a-z\d])([A-Z])/,
       '\1_\2').downcase
+  end
+  
+  class FileModel
+    def initialize(fn)
+      @fn = fn
+      id = File.basename(fn, ".json").to_i
+      cont = File.read fn
+      @hash = JSON.parse cont
+    end
+  
+    def [](field)
+      @hash[field.to_s]
+    end
+  
+    def []=(field, val)
+      @hash[field.to_s] = val
+    end
+  
+    def self.find(id)
+      self.new "data/#{id}.json"
+    # rescue
+    #   nil
+    end
   end
 end
